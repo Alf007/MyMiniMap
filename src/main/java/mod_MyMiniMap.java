@@ -477,11 +477,6 @@ public class mod_MyMiniMap extends BaseMod implements Runnable
 	            if (message_timer > 0)
 	            	engine.draw_text(info_message, 20, 20, 0xffffff);
 	
-	            GL11.glDepthMask(true);
-	            GL11.glDisable(3042);
-	            GL11.glEnable(2929);
-	            GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
-	
 	            if (display_coords)
 	            	draw_coords(screen_width, screen_height);
 	        }
@@ -678,10 +673,10 @@ public class mod_MyMiniMap extends BaseMod implements Runnable
     {
     	try
     	{
-    		GL11.glDisable(2929);
-	        GL11.glEnable(3042);
+    		GL11.glDisable(GL11.GL_DEPTH_TEST);
+	        GL11.glEnable(GL11.GL_BLEND);
 	        GL11.glDepthMask(false);
-	        GL11.glBlendFunc(770, 0);
+	        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, 0);
 	        GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
 	
 	        if (!hide)
@@ -736,9 +731,9 @@ public class mod_MyMiniMap extends BaseMod implements Runnable
 	            the_waypoints.draw(coord_x(), coord_y(), netherpoints, zoom, direction, screen_width);
 	
             	GL11.glPushMatrix();
-	            GL11.glDisable(3042);
+	            GL11.glDisable(GL11.GL_BLEND);
 	            GL11.glDepthMask(true);
-	            GL11.glDisable(2929);
+	            GL11.glDisable(GL11.GL_DEPTH_TEST);
 	            
 	            Iterator<other_entity> i$ = the_entities.iterator();
 	            while (i$.hasNext())
@@ -940,7 +935,7 @@ public class mod_MyMiniMap extends BaseMod implements Runnable
         int centerX = (screen_width + 5) / 2;
         int centerY = (screen_height + 5) / 2;
         String choice;
-        GL11.glDisable(3553);
+        GL11.glDisable(GL11.GL_TEXTURE_2D);
         GL11.glColor4f(0.0f, 0.0f, 0.0f, 0.7f);
         double leftX = centerX - title / 2.0D - border;
         double rightX = centerX + title / 2.0D + border;
@@ -956,7 +951,7 @@ public class mod_MyMiniMap extends BaseMod implements Runnable
         draw_options(rightX - border, topY + border, MouseX, MouseY, set, click);
         int footer = draw_footer(centerX, centerY, menu_item, opt1, opt2, opt3, border, MouseX, MouseY, set, click);
 
-        GL11.glEnable(3553);
+        GL11.glEnable(GL11.GL_TEXTURE_2D);
         engine.draw_text(head, centerX - title / 2, (centerY - (menu_item - 1) * 5) - 19, 0xffffff);
 
         if (menu_select == menu_panel.OPTIONS)
@@ -1015,10 +1010,10 @@ public class mod_MyMiniMap extends BaseMod implements Runnable
                 {
                     String out = waypoint.x + ", " + waypoint.z;
                     int len = engine.text_width(out) / 2;
-                    GL11.glDisable(3553);
+                    GL11.glDisable(GL11.GL_TEXTURE_2D);
                     GL11.glColor4f(0.0f, 0.0f, 0.0f, 0.8f);
                     draw_box(MouseX - len - 1, MouseX + len + 1, MouseY - 11, MouseY - 1);
-                    GL11.glEnable(3553);
+                    GL11.glEnable(GL11.GL_TEXTURE_2D);
                     engine.draw_text(out, MouseX - len, MouseY - 10, 0xffffff);
                 }
             }
@@ -1119,7 +1114,7 @@ public class mod_MyMiniMap extends BaseMod implements Runnable
 	            else
 	            	last_key = 0;
 	
-	            GL11.glDisable(3553);
+	            GL11.glDisable(GL11.GL_TEXTURE_2D);
 	            GL11.glColor4f(0.0f, 0.0f, 0.0f, 0.7f);
 	            leftX = centerX - 75 - border;
 	            rightX = centerX + 75 + border;
@@ -1132,7 +1127,7 @@ public class mod_MyMiniMap extends BaseMod implements Runnable
 	            botY = botY - border;
 	            GL11.glColor4f(1.0f, 1.0f, 1.0f, 0.5f);
 	            draw_box(leftX, rightX, topY, botY);
-	            GL11.glEnable(3553);
+	            GL11.glEnable(GL11.GL_TEXTURE_2D);
 	            String out = "Please enter a name:";
 	
 	            if (menu_select == menu_panel.WAYPOINT_X)
