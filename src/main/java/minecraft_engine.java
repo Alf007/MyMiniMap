@@ -1,3 +1,4 @@
+import java.awt.Component;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.util.List;
@@ -27,7 +28,12 @@ public class minecraft_engine
 		lDraw = nw.a;
 	}
 	
-    public File get_app_dir(String app)
+	public Component get_component()
+	{
+		return game.m;
+	}
+
+	public File get_app_dir(String app)
     {
         return Minecraft.a(app);
     }

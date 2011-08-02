@@ -1,7 +1,6 @@
 
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
@@ -10,7 +9,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.lwjgl.input.Keyboard;
-import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.GL11;
 
 import net.minecraft.client.Minecraft;
@@ -19,35 +17,15 @@ public class mod_MyMiniMap extends BaseMod implements Runnable
 {
 
     public enum menu_panel { NONE, OPTIONS, WAYPOINTS, WAYPOINTS_REMOVE, WAYPOINT_NAME, WAYPOINT_X, WAYPOINT_Z };
-	public enum options { TITLE, COORDINATES, DISPLAY, LIGHTING, HEIGHTMAP, CAVEMAP, NETHERPOINTS, PLAYERS, MOBS, KEY_IN, KEY_OUT, KEY_MENU };
     
 	static public String settings_filename = "minimap.settings",
-		colors_filename = "map_colors";
-	static public HashMap<options, String> options_string = new HashMap<options, String>();
-	static {
-		options_string.put(options.DISPLAY, "Show map"); 
-		options_string.put(options.COORDINATES, "Show Coordinates");
-		options_string.put(options.LIGHTING, "Dynamic Lighting");
-		options_string.put(options.HEIGHTMAP, "Terrain Depth");
-		options_string.put(options.KEY_IN, "Zoom Key In");
-		options_string.put(options.KEY_OUT, "Zoom Key Out");
-		options_string.put(options.KEY_MENU, "Menu Key");
-		options_string.put(options.NETHERPOINTS, "Netherpoints");
-		options_string.put(options.CAVEMAP, "Cavemap");
-	}
+		colors_filename = "map_colors",
+		label_KEY_IN = "Zoom Key In", label_KEY_OUT = "Zoom Key Out", label_KEY_MENU = "Menu Key";
 	
 	public mod_MyMiniMap()
 	{
         enabled = true;
-        hide = false;
-        display_coords = true;
         active = false;
-        mode_light = false;
-        mode_height = true;
-        mode_cave = false;
-        netherpoints = false;
-        display_players = true;
-        display_mobs = true;
         last_dimension = 0;
         zoom = 1;
         last_x = 0;
@@ -103,47 +81,30 @@ public class mod_MyMiniMap extends BaseMod implements Runnable
 	    try
 	    {
 		    main_menu = new String[2];
-	        menu_options = new HashMap<options, String>();
-	        menu_options.put(options.TITLE, "Options");
-	        menu_options.put(options.COORDINATES, "Display Coordinates:");
-	        menu_options.put(options.DISPLAY, "Hide Minimap:");
-	        menu_options.put(options.LIGHTING, "Dynamic Lighting:");
-	        menu_options.put(options.HEIGHTMAP, "Terrain Depth:");
-	        menu_options.put(options.CAVEMAP, "Cavemap:");
-	        menu_options.put(options.NETHERPOINTS, "Netherpoints:");
-	        menu_options.put(options.PLAYERS, "Other players:");
-	        menu_options.put(options.MOBS, "Mobs:");
+		    the_options = new menu_options(engine, settings_filename);
+	        the_options.set(menu_options.options_indexes.DISPLAY, true);
+	        the_options.set(menu_options.options_indexes.COORDINATES, true);
+	        the_options.set(menu_options.options_indexes.LIGHTING, false);
+	        the_options.set(menu_options.options_indexes.HEIGHTMAP, true);
+	        the_options.set(menu_options.options_indexes.CAVEMAP, false);
+	        the_options.set(menu_options.options_indexes.NETHERPOINTS, false);
+	        the_options.set(menu_options.options_indexes.PLAYERS, true);
+	        the_options.set(menu_options.options_indexes.MOBS, true);
 	        
 	        file_settings main_settings = new file_settings(settings_filename);
-	        if (main_settings.has(options_string.get(options.DISPLAY)))
-	            hide = !Boolean.parseBoolean(main_settings.get(options_string.get(options.DISPLAY)));
-	        if (main_settings.has(options_string.get(options.KEY_IN)))
-	            key_zoom_in = Keyboard.getKeyIndex(main_settings.get(options_string.get(options.KEY_IN)));
-	        if (main_settings.has(options_string.get(options.KEY_OUT)))
-	            key_zoom_out = Keyboard.getKeyIndex(main_settings.get(options_string.get(options.KEY_OUT)));
-	        if (main_settings.has(options_string.get(options.KEY_MENU)))
-	            key_menu = Keyboard.getKeyIndex(main_settings.get(options_string.get(options.KEY_MENU)));
-	        if (main_settings.has(options_string.get(options.COORDINATES)))
-	        	display_coords = Boolean.parseBoolean(main_settings.get(options_string.get(options.COORDINATES)));
-	        if (main_settings.has(options_string.get(options.LIGHTING)))
-	        	mode_light = Boolean.parseBoolean(main_settings.get(options_string.get(options.LIGHTING)));
-	        if (main_settings.has(options_string.get(options.HEIGHTMAP)))
-	        	mode_height = Boolean.parseBoolean(main_settings.get(options_string.get(options.HEIGHTMAP)));
-	        if (main_settings.has(options_string.get(options.CAVEMAP)))
-	        	mode_cave = Boolean.parseBoolean(main_settings.get(options_string.get(options.CAVEMAP)));
-	        if (main_settings.has(options_string.get(options.NETHERPOINTS)))
-	        	netherpoints = Boolean.parseBoolean(main_settings.get(options_string.get(options.NETHERPOINTS)));
-	        if (main_settings.has(options_string.get(options.PLAYERS)))
-	        	display_players = Boolean.parseBoolean(main_settings.get(options_string.get(options.PLAYERS)));
-	        if (main_settings.has(options_string.get(options.MOBS)))
-	        	display_mobs = Boolean.parseBoolean(main_settings.get(options_string.get(options.MOBS)));
+	        if (main_settings.has(label_KEY_IN))
+	            key_zoom_in = Keyboard.getKeyIndex(main_settings.get(label_KEY_IN));
+	        if (main_settings.has(label_KEY_OUT))
+	            key_zoom_out = Keyboard.getKeyIndex(main_settings.get(label_KEY_OUT));
+	        if (main_settings.has(label_KEY_MENU))
+	            key_menu = Keyboard.getKeyIndex(main_settings.get(label_KEY_MENU));
 	
-	        if (mode_cave && !(mode_light ^ mode_height))
+	        if (the_options.is_active(menu_options.options_indexes.CAVEMAP) && !(the_options.is_active(menu_options.options_indexes.LIGHTING) ^ the_options.is_active(menu_options.options_indexes.HEIGHTMAP)))
 	        {
-	            mode_light = true;
-	            mode_height = false;
+	        	the_options.set(menu_options.options_indexes.LIGHTING, true);
+	        	the_options.set(menu_options.options_indexes.HEIGHTMAP, false);
 	        }
-	        if (mode_cave)
+	        if (the_options.is_active(menu_options.options_indexes.CAVEMAP))
 	        {
 	            zoom = 1;
 	            info_message = "Cavemap zoom (2.0x)";
@@ -358,19 +319,12 @@ public class mod_MyMiniMap extends BaseMod implements Runnable
     {
 		try
 		{
+	    	the_options.save();
 	    	file_settings main_settings = new file_settings(settings_filename);
 	    	main_settings.prepare_for_output();
-	    	main_settings.println(options_string.get(options.DISPLAY) + ":" + Boolean.toString(!hide));
-	    	main_settings.println(options_string.get(options.KEY_IN) + ":" + Keyboard.getKeyName(key_zoom_in));
-	    	main_settings.println(options_string.get(options.KEY_OUT) + ":" + Keyboard.getKeyName(key_zoom_out));
-	    	main_settings.println(options_string.get(options.KEY_MENU) + ":" + Keyboard.getKeyName(key_menu));
-	    	main_settings.println(options_string.get(options.COORDINATES) + ":" + Boolean.toString(display_coords));
-	    	main_settings.println(options_string.get(options.LIGHTING) + ":" + Boolean.toString(mode_light));
-	    	main_settings.println(options_string.get(options.HEIGHTMAP) + ":" + Boolean.toString(mode_height));
-	    	main_settings.println(options_string.get(options.CAVEMAP) + ":" + Boolean.toString(mode_cave));
-	    	main_settings.println(options_string.get(options.NETHERPOINTS) + ":" + Boolean.toString(netherpoints));
-	    	main_settings.println(options_string.get(options.PLAYERS) + ":" + Boolean.toString(display_players));
-	    	main_settings.println(options_string.get(options.MOBS) + ":" + Boolean.toString(display_mobs));
+	    	main_settings.println(label_KEY_IN + ":" + Keyboard.getKeyName(key_zoom_in));
+	    	main_settings.println(label_KEY_OUT + ":" + Keyboard.getKeyName(key_zoom_out));
+	    	main_settings.println(label_KEY_MENU + ":" + Keyboard.getKeyName(key_menu));
 		} catch (Exception e)
         {
             e.printStackTrace();
@@ -392,11 +346,11 @@ public class mod_MyMiniMap extends BaseMod implements Runnable
 	        int dimension = engine.get_current_dimension(last_dimension);
 	        if (dimension != last_dimension)
 	        {
-	            mode_cave = dimension < 0;
-	            mode_height = !mode_cave;
+	        	the_options.set(menu_options.options_indexes.CAVEMAP, dimension < 0);
+	        	the_options.set(menu_options.options_indexes.HEIGHTMAP, !the_options.is_active(menu_options.options_indexes.CAVEMAP));
 	            last_dimension = dimension;
 	            save_main_settings();
-	            if (mode_cave)
+	            if (the_options.is_active(menu_options.options_indexes.CAVEMAP))
 	                zoom = 1;
 	        }
 	
@@ -419,7 +373,7 @@ public class mod_MyMiniMap extends BaseMod implements Runnable
 	                	exception.printStackTrace();
 	                }
 	        } else
-	            if (enabled && !hide && (last_x != coord_x() || last_z != coord_y() || timer > 300))
+	            if (enabled && the_options.is_active(menu_options.options_indexes.DISPLAY) && (last_x != coord_x() || last_z != coord_y() || timer > 300))
 	                fill_map();
 	
 	        int screen_width = engine.get_screen_width(),
@@ -477,7 +431,7 @@ public class mod_MyMiniMap extends BaseMod implements Runnable
 	            if (message_timer > 0)
 	            	engine.draw_text(info_message, 20, 20, 0xffffff);
 	
-	            if (display_coords)
+	            if (the_options.is_active(menu_options.options_indexes.COORDINATES))
 	            	draw_coords(screen_width, screen_height);
 	        }
             if (menu_select != menu_panel.NONE)
@@ -501,7 +455,7 @@ public class mod_MyMiniMap extends BaseMod implements Runnable
             {
                 for (active = true; engine.player_exists() && active; active = false)
                 {
-                    if (enabled && !hide && (last_x != coord_x() || last_z != coord_y() || timer > 300) && engine.safe_to_run())
+                    if (enabled && the_options.is_active(menu_options.options_indexes.DISPLAY) && (last_x != coord_x() || last_z != coord_y() || timer > 300) && engine.safe_to_run())
                         try
                         {
                             fill_map();
@@ -580,7 +534,7 @@ public class mod_MyMiniMap extends BaseMod implements Runnable
 
                     if (check)
                     {
-                        if (!mode_cave)
+                        if (!the_options.is_active(menu_options.options_indexes.CAVEMAP))
                         {
                             if ((data.f(start_x + image_y, height + 1, start_z - image_x) == ln.s) || (data.f(start_x + image_y, height + 1, start_z - image_x) == ln.t))
                                 color24 = 0xffffff;
@@ -597,7 +551,7 @@ public class mod_MyMiniMap extends BaseMod implements Runnable
 
                     if ((color24 != 0xff00ff) && (color24 != 0) && check)
                     {
-                        if (mode_height)
+                        if (the_options.is_active(menu_options.options_indexes.HEIGHTMAP))
                         {
                             int i2 = height;
                             //if offsetByZloc
@@ -631,10 +585,10 @@ public class mod_MyMiniMap extends BaseMod implements Runnable
                         if (i3 < min)
                         {
                             i3 = min;
-                            if (mode_cave)
+                            if (the_options.is_active(menu_options.options_indexes.CAVEMAP))
                                 color24 = 0x222222;
                         }
-                        if (mode_cave)
+                        if (the_options.is_active(menu_options.options_indexes.CAVEMAP))
                             i3 *= 1.3f;
                         
                         if (i3 > 255)
@@ -659,7 +613,7 @@ public class mod_MyMiniMap extends BaseMod implements Runnable
                 if (calc_distance(position_x, position_z, entity.position_x, entity.position_z) > (double)half_surface)
                     continue;
                 entity.update_position(position_x, position_z, half_surface);
-                if ((display_mobs && entity.type != other_entity.entity_type.PLAYER && entity.type != other_entity.entity_type.ITEM) || (display_players && entity.type == other_entity.entity_type.PLAYER))
+                if ((the_options.is_active(menu_options.options_indexes.MOBS) && entity.type != other_entity.entity_type.PLAYER && entity.type != other_entity.entity_type.ITEM) || (the_options.is_active(menu_options.options_indexes.PLAYERS) && entity.type == other_entity.entity_type.PLAYER))
                 	the_entities.add(entity);
             }
         }
@@ -679,7 +633,7 @@ public class mod_MyMiniMap extends BaseMod implements Runnable
 	        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, 0);
 	        GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
 	
-	        if (!hide)
+	        if (the_options.is_active(menu_options.options_indexes.DISPLAY))
 	        {
 	            if (texture != 0)
 	            	engine.renderize(texture);
@@ -728,7 +682,7 @@ public class mod_MyMiniMap extends BaseMod implements Runnable
 	            draw_round(screen_width);
 	            draw_directions(screen_width);
 	
-	            the_waypoints.draw(coord_x(), coord_y(), netherpoints, zoom, direction, screen_width);
+	            the_waypoints.draw(coord_x(), coord_y(), the_options.is_active(menu_options.options_indexes.NETHERPOINTS), zoom, direction, screen_width);
 	
             	GL11.glPushMatrix();
 	            GL11.glDisable(GL11.GL_BLEND);
@@ -802,7 +756,7 @@ public class mod_MyMiniMap extends BaseMod implements Runnable
     
     private void draw_coords(int width, int height)
     {
-        if (!hide)
+        if (the_options.is_active(menu_options.options_indexes.DISPLAY))
         {
             GL11.glPushMatrix();
             try
@@ -846,7 +800,7 @@ public class mod_MyMiniMap extends BaseMod implements Runnable
         		zoom = 0;
         	else if (zoom > 3)
         		zoom = 3;
-            if (mode_cave)
+            if (the_options.is_active(menu_options.options_indexes.CAVEMAP))
             {
                 info_message = "Cavemap zoom ";
                 if (zoom > 1)
@@ -884,7 +838,7 @@ public class mod_MyMiniMap extends BaseMod implements Runnable
 
     private void show_menu(int screen_width, int screen_height)
     {
-        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+/*        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
         int menu_item;
         int max_width = 0;
         int border = 2;
@@ -905,18 +859,19 @@ public class mod_MyMiniMap extends BaseMod implements Runnable
         	lfclick = false;
 
         String head, opt1, opt2, opt3 = "Remove";
-
+*/
         if (menu_select == menu_panel.OPTIONS)
         {
-            head = menu_options.get(options.TITLE);
+ /*           head = menu_options.get(options.TITLE);
             opt1 = "Exit Menu";
             opt2 = "Waypoints";
             for (options item : options.values())
                 if (engine.text_width(menu_options.get(item)) > max_width)
                     max_width = engine.text_width(menu_options.get(item));
-            menu_item = options.values().length;
+            menu_item = options.values().length;*/
+        	the_options.show((screen_width + 5) / 2, (screen_height + 5) / 2);
         }
-        else
+  /*      else
         {
         	head = "Waypoints";
             opt1 = "Back";
@@ -987,10 +942,10 @@ public class mod_MyMiniMap extends BaseMod implements Runnable
 
             for (int n = first_entry; n < max; n++)
             {
-            	waypoints.waypoint waypoint = the_waypoints.get(n);
+            	Waypoint a_waypoint = the_waypoints.get(n);
                 int yTop = ((centerY - (menu_item - 1) * 5) + ((n + 1 - first_entry) * 10));
                 int leftTxt = (int)leftX + border + 1;
-                engine.draw_text((n + 1) + ") " + waypoint.name, leftTxt, yTop - 9, 0xffffff);
+                engine.draw_text((n + 1) + ") " + a_waypoint.name, leftTxt, yTop - 9, 0xffffff);
 
                 if (menu_select == menu_panel.WAYPOINTS_REMOVE)
                 {
@@ -998,7 +953,7 @@ public class mod_MyMiniMap extends BaseMod implements Runnable
                 }
                 else
                 {
-                    if (waypoint.enabled)
+                    if (a_waypoint.enabled)
                     	choice = "On";
                     else
                     	choice = "Off";
@@ -1008,7 +963,7 @@ public class mod_MyMiniMap extends BaseMod implements Runnable
 
                 if (MouseX > leftTxt && MouseX < (rightX - border - 77) && MouseY > yTop - 10 && MouseY < yTop - 1)
                 {
-                    String out = waypoint.x + ", " + waypoint.z;
+                    String out = a_waypoint.x + ", " + a_waypoint.z;
                     int len = engine.text_width(out) / 2;
                     GL11.glDisable(GL11.GL_TEXTURE_2D);
                     GL11.glColor4f(0.0f, 0.0f, 0.0f, 0.8f);
@@ -1042,7 +997,7 @@ public class mod_MyMiniMap extends BaseMod implements Runnable
             String verify = "alf";
             try
             {
-	            waypoints.waypoint new_waypoint = the_waypoints.create();
+	            Waypoint new_waypoint = the_waypoints.create();
 	
 	            if ((menu_select == menu_panel.WAYPOINT_X || menu_select == menu_panel.WAYPOINT_Z) && input.isEmpty())
 	                verify = "-0123456789n";
@@ -1172,14 +1127,14 @@ public class mod_MyMiniMap extends BaseMod implements Runnable
             }
             this.blink++;
         }
-
+*/
         if (next_menu != menu_panel.NONE)
         {
             menu_select = next_menu;
             next_menu = menu_panel.NONE;
         }
     }
-
+/*
     private int draw_footer(int centerX, int centerY, int m, String opt1, String opt2, String opt3, int border, int MouseX, int MouseY, boolean set, boolean click)
     {
         int footer = engine.text_width(opt1);
@@ -1333,7 +1288,7 @@ public class mod_MyMiniMap extends BaseMod implements Runnable
         save_main_settings();
         timer = 50000;
     }
-
+*/
     public boolean is_menu_showing()
     {
         return engine.get_menu() != null;
@@ -1373,7 +1328,7 @@ public class mod_MyMiniMap extends BaseMod implements Runnable
     	engine.ldrawthree(width, 5.0D, 1.0D, 1.0D, 0.0D);
     	engine.ldrawthree(width - 64.0D, 5.0D, 1.0D, 0.0D, 0.0D);
     }
-
+/*
     private void draw_box(double left, double right, double top, double bottom)
     {
     	engine.drawPre();
@@ -1590,7 +1545,7 @@ public class mod_MyMiniMap extends BaseMod implements Runnable
             }
         }
     }
-
+*/
     private final float calc_distance(int x1, int y1, int x2, int y2)
     {
         return (float)Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
@@ -1598,7 +1553,7 @@ public class mod_MyMiniMap extends BaseMod implements Runnable
 
     private final int get_block_height(fd world, int x, int z, int starty)
     {
-        if (mode_cave)
+        if (the_options.is_active(menu_options.options_indexes.CAVEMAP))
         {
             lm chunk = world.b(x, z);
             randomize.setSeed((x & 0xffff) | ((z & 0xffff) << 16));
@@ -1666,40 +1621,6 @@ public class mod_MyMiniMap extends BaseMod implements Runnable
         return (blockid) | (meta << 8);
     }
 
-    public enum TintType
-    {
-        //so it turns out that redstone is actually based on the metadata ...
-        NONE, GRASS, FOLIAGE, PINE, BIRCH, REDSTONE, COLORMULT;
-        public static final HashMap<String, TintType> map;
-
-        public static TintType get(String name)
-        {
-            return map.get(name);
-        }
-
-        static
-        {
-            map = new HashMap<String, TintType>();
-            for (TintType t : TintType.values())
-            {
-                map.put(t.name(), t);
-            }
-        }
-    }
-
-    public class BlockColor
-    {
-        public final int color;
-        public final short alpha;
-        public final TintType tintType;
-        public BlockColor(int color, int alpha, TintType tintType)
-        {
-            this.color = color;
-            this.alpha = (short)alpha;
-            this.tintType = tintType;
-        }
-    }
-
     private final BlockColor get_block_color(int blockid, int meta)
     {
         try
@@ -1755,7 +1676,7 @@ public class mod_MyMiniMap extends BaseMod implements Runnable
     private BufferedImage map[];
 
     public String[] main_menu;
-    public HashMap<options, String> menu_options;
+    public menu_options the_options;
     public int menu_count;
     public boolean scrollbar_click;
     public int scrollbar_start, scrollbar_offset, scrollbar_size, first_entry;
@@ -1774,8 +1695,8 @@ public class mod_MyMiniMap extends BaseMod implements Runnable
     //	Holds error exceptions thrown
     public String info_message;
 
-    private boolean enabled, hide;
-    public boolean active, display_coords, mode_light, mode_height, mode_cave, netherpoints, display_players, display_mobs;
+    private boolean enabled;
+    public boolean active;
     private int zoom;
     private int last_x, last_z;
     public int texture; 
