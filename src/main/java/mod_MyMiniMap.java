@@ -15,16 +15,38 @@ import net.minecraft.client.Minecraft;
 
 public class mod_MyMiniMap extends BaseMod implements Runnable
 {
-
-    public enum menu_panel { NONE, OPTIONS, WAYPOINTS, WAYPOINTS_REMOVE, WAYPOINT_NAME, WAYPOINT_X, WAYPOINT_Z };
-    
 	static public String settings_filename = "minimap.settings",
-		colors_filename = "map_colors",
-		label_KEY_IN = "Zoom Key In", label_KEY_OUT = "Zoom Key Out", label_KEY_MENU = "Menu Key";
+		colors_filename = "map_colors";
+	public enum keys_indexes { ZOOM_IN, ZOOM_OUT, OPTIONS, WAYPOINTS };
+	public class key_definition
+	{
+		keys_indexes key;
+		int value;
+		String label;
+
+		public key_definition(keys_indexes key, String label, int value)
+		{
+			this.key = key;
+			this.label = label;
+			this.value = value;
+		}
+	}
+	static public ArrayList<key_definition> keys_list = new ArrayList<key_definition>();
+
+	public key_definition get_key(keys_indexes key)
+	{
+		Iterator<key_definition> key_item = keys_list.iterator();
+		while (key_item.hasNext())
+		{
+			key_definition current = key_item.next(); 
+			if (current.key == key)
+				return current;
+		}
+		return null;
+	}
 	
 	public mod_MyMiniMap()
 	{
-        enabled = true;
         active = false;
         last_dimension = 0;
         zoom = 1;
@@ -56,16 +78,12 @@ public class mod_MyMiniMap extends BaseMod implements Runnable
         initialize_menu();
         initialize_colors();
         engine.to_chat("My MiniMap " + Version());
-        engine.to_chat("- Press §B" + Keyboard.getKeyName(key_zoom_in) + " §Fto zoom in, §B" + Keyboard.getKeyName(key_zoom_out) + " §Fto zoom out, or §B" + Keyboard.getKeyName(key_menu) + "§F for options.");
+        engine.to_chat("- Press §B" + Keyboard.getKeyName(get_key(keys_indexes.ZOOM_IN).value) + " §Fto zoom in, §B" + Keyboard.getKeyName(get_key(keys_indexes.ZOOM_OUT).value) + " §Fto zoom out, or §B" + Keyboard.getKeyName(get_key(keys_indexes.OPTIONS).value) + "§F for options.");
         the_waypoints = new waypoints();
 	}
 	
 	private void initialize_menu()
 	{
-	    key_zoom_in = Keyboard.KEY_INSERT;
-	    key_zoom_out = Keyboard.KEY_DELETE;
-	    key_menu = Keyboard.KEY_M;
-
 	    scrollbar_click = false;
 	    scrollbar_start = 0;
 	    scrollbar_offset = 0;
@@ -74,9 +92,10 @@ public class mod_MyMiniMap extends BaseMod implements Runnable
 	    
 	    blink = 0;
 	    last_key = 0;
-	    menu_select = menu_panel.OPTIONS;
-	    next_menu = menu_panel.NONE;
-	    input = "";
+		keys_list.add(new key_definition(keys_indexes.ZOOM_IN, "Zoom Key In", Keyboard.KEY_INSERT));
+		keys_list.add(new key_definition(keys_indexes.ZOOM_OUT, "Zoom Key Out", Keyboard.KEY_DELETE));
+		keys_list.add(new key_definition(keys_indexes.OPTIONS, "Options menu Key", Keyboard.KEY_O));
+		keys_list.add(new key_definition(keys_indexes.WAYPOINTS, "Waypoints menu Key", Keyboard.KEY_P));
 
 	    try
 	    {
@@ -92,12 +111,11 @@ public class mod_MyMiniMap extends BaseMod implements Runnable
 	        the_options.set(menu_options.options_indexes.MOBS, true);
 	        
 	        file_settings main_settings = new file_settings(settings_filename);
-	        if (main_settings.has(label_KEY_IN))
-	            key_zoom_in = Keyboard.getKeyIndex(main_settings.get(label_KEY_IN));
-	        if (main_settings.has(label_KEY_OUT))
-	            key_zoom_out = Keyboard.getKeyIndex(main_settings.get(label_KEY_OUT));
-	        if (main_settings.has(label_KEY_MENU))
-	            key_menu = Keyboard.getKeyIndex(main_settings.get(label_KEY_MENU));
+	        for (key_definition key : keys_list)
+	        {
+	        	if (main_settings.has(key.label))
+	        		key.value = Keyboard.getKeyIndex(main_settings.get(key.label));
+	        }
 	
 	        if (the_options.is_active(menu_options.options_indexes.CAVEMAP) && !(the_options.is_active(menu_options.options_indexes.LIGHTING) ^ the_options.is_active(menu_options.options_indexes.HEIGHTMAP)))
 	        {
@@ -322,9 +340,10 @@ public class mod_MyMiniMap extends BaseMod implements Runnable
 	    	the_options.save();
 	    	file_settings main_settings = new file_settings(settings_filename);
 	    	main_settings.prepare_for_output();
-	    	main_settings.println(label_KEY_IN + ":" + Keyboard.getKeyName(key_zoom_in));
-	    	main_settings.println(label_KEY_OUT + ":" + Keyboard.getKeyName(key_zoom_out));
-	    	main_settings.println(label_KEY_MENU + ":" + Keyboard.getKeyName(key_menu));
+	        for (key_definition key : keys_list)
+	        {
+		    	main_settings.println(key.label + ":" + Keyboard.getKeyName(key.value));
+	        }
 		} catch (Exception e)
         {
             e.printStackTrace();
@@ -343,6 +362,12 @@ public class mod_MyMiniMap extends BaseMod implements Runnable
 
         try
         {
+        	if (engine.get_menu() != null)
+        	{
+        		return true;
+        	} else
+        		the_options.hide();
+        	
 	        int dimension = engine.get_current_dimension(last_dimension);
 	        if (dimension != last_dimension)
 	        {
@@ -373,30 +398,36 @@ public class mod_MyMiniMap extends BaseMod implements Runnable
 	                	exception.printStackTrace();
 	                }
 	        } else
-	            if (enabled && the_options.is_active(menu_options.options_indexes.DISPLAY) && (last_x != coord_x() || last_z != coord_y() || timer > 300))
+	            if (the_options.is_active(menu_options.options_indexes.DISPLAY) && (last_x != coord_x() || last_z != coord_y() || timer > 300))
 	                fill_map();
 	
-	        int screen_width = engine.get_screen_width(),
-	        	screen_height = engine.get_screen_height();
+	        int screen_width = engine.get_screen_width() - 5,
+	        	screen_height = engine.get_screen_height() - 100;
 	
-	        if (Keyboard.isKeyDown(key_menu))
-        	{
-	        	if (enabled)
-	        	{
-	        		menu_select = menu_panel.OPTIONS;
-	        		engine.show_generic_gui();
-	        	} else
-	        		menu_select = menu_panel.NONE;
-	        } else if (Keyboard.isKeyDown(key_zoom_in))
-		        set_zoom(true);
-	        else if (Keyboard.isKeyDown(key_zoom_out))
-	        	set_zoom(false);
+	        for (key_definition key : keys_list)
+	        {
+		        if (Keyboard.isKeyDown(key.value))
+		        {
+		        	switch (key.key)
+		        	{
+		        	case OPTIONS:
+			        	the_options.show((screen_width + 5) / 2, (screen_height + 5) / 2);
+		        		break;
 
-	        enabled = !is_menu_showing();
+		        	case WAYPOINTS:
+		        		break;
+		        	
+		        	case ZOOM_IN:
+				        set_zoom(true);
+		        		break;
+		        	
+		        	case ZOOM_OUT:
+			        	set_zoom(false);
+		        		break;
+		        	}
+		        }
+	        }
 
-	        screen_width -= 5;
-	        screen_height -= 100;
-	
 	        if (old_direction != engine.radius())
 	        {
 	            direction += old_direction - engine.radius();
@@ -424,19 +455,13 @@ public class mod_MyMiniMap extends BaseMod implements Runnable
 	        if (message_timer == 0 && !info_message.isEmpty())
 	            info_message = "";
 	
-	        if (enabled)
-	        {
-	            render_map(screen_width);
-	
-	            if (message_timer > 0)
-	            	engine.draw_text(info_message, 20, 20, 0xffffff);
-	
-	            if (the_options.is_active(menu_options.options_indexes.COORDINATES))
-	            	draw_coords(screen_width, screen_height);
-	        }
-            if (menu_select != menu_panel.NONE)
-            	show_menu(screen_width, screen_height);
-            
+            render_map(screen_width);
+
+            if (message_timer > 0)
+            	engine.draw_text(info_message, 20, 20, 0xffffff);
+
+            if (the_options.is_active(menu_options.options_indexes.COORDINATES))
+            	draw_coords(screen_width, screen_height);
         } catch (Exception e)
         {
             e.printStackTrace();
@@ -455,7 +480,7 @@ public class mod_MyMiniMap extends BaseMod implements Runnable
             {
                 for (active = true; engine.player_exists() && active; active = false)
                 {
-                    if (enabled && the_options.is_active(menu_options.options_indexes.DISPLAY) && (last_x != coord_x() || last_z != coord_y() || timer > 300) && engine.safe_to_run())
+                    if (the_options.is_active(menu_options.options_indexes.DISPLAY) && (last_x != coord_x() || last_z != coord_y() || timer > 300) && engine.safe_to_run())
                         try
                         {
                             fill_map();
@@ -784,56 +809,48 @@ public class mod_MyMiniMap extends BaseMod implements Runnable
     {
     	if (temp_counter > 0)
     		return;
-        if (menu_select != menu_panel.NONE)
+
+    	if (zoom_in)
+    		zoom--;
+    	else
+    		zoom++;
+    	if (zoom < 0)
+    		zoom = 0;
+    	else if (zoom > 3)
+    		zoom = 3;
+        if (the_options.is_active(menu_options.options_indexes.CAVEMAP))
         {
-            menu_select = menu_panel.NONE;
-            if (is_menu_showing())
-            	engine.close_menu();
-        }
-        else
-        {
-        	if (zoom_in)
-        		zoom--;
-        	else
-        		zoom++;
-        	if (zoom < 0)
-        		zoom = 0;
-        	else if (zoom > 3)
-        		zoom = 3;
-            if (the_options.is_active(menu_options.options_indexes.CAVEMAP))
+            info_message = "Cavemap zoom ";
+            if (zoom > 1)
             {
-                info_message = "Cavemap zoom ";
-                if (zoom > 1)
-                {
-                    zoom = 1;
-                    info_message += "(2.0x)";
-                }
-                else
-                {
-                    zoom = 0;
-                    info_message += "(4.0x)";
-                }
+                zoom = 1;
+                info_message += "(2.0x)";
             }
-            switch (zoom)
+            else
             {
-            case 3:
-                info_message = "Zoom Level: (0.5x)";
-                break;
-                
-            case 2:
-                info_message = "Zoom Level: (1.0x)";
-                break;
-                
-            case 1:
-                info_message = "Zoom Level: (2.0x)";
-                break;
+                zoom = 0;
+                info_message += "(4.0x)";
+            }
+        }
+        switch (zoom)
+        {
+        case 3:
+            info_message = "Zoom Level: (0.5x)";
+            break;
             
-            case 0:
-                info_message = "Zoom Level: (4.0x)";
-            }
-            timer = 500;
-            temp_counter = 20;
+        case 2:
+            info_message = "Zoom Level: (1.0x)";
+            break;
+            
+        case 1:
+            info_message = "Zoom Level: (2.0x)";
+            break;
+        
+        case 0:
+            info_message = "Zoom Level: (4.0x)";
         }
+        timer = 500;
+        temp_counter = 20;
     }
 
     private void show_menu(int screen_width, int screen_height)
@@ -859,10 +876,10 @@ public class mod_MyMiniMap extends BaseMod implements Runnable
         	lfclick = false;
 
         String head, opt1, opt2, opt3 = "Remove";
-*/
+
         if (menu_select == menu_panel.OPTIONS)
         {
- /*           head = menu_options.get(options.TITLE);
+*           head = menu_options.get(options.TITLE);
             opt1 = "Exit Menu";
             opt2 = "Waypoints";
             for (options item : options.values())
@@ -870,8 +887,8 @@ public class mod_MyMiniMap extends BaseMod implements Runnable
                     max_width = engine.text_width(menu_options.get(item));
             menu_item = options.values().length;*/
         	the_options.show((screen_width + 5) / 2, (screen_height + 5) / 2);
-        }
-  /*      else
+/*        }
+        else
         {
         	head = "Waypoints";
             opt1 = "Back";
@@ -1128,11 +1145,6 @@ public class mod_MyMiniMap extends BaseMod implements Runnable
             this.blink++;
         }
 */
-        if (next_menu != menu_panel.NONE)
-        {
-            menu_select = next_menu;
-            next_menu = menu_panel.NONE;
-        }
     }
 /*
     private int draw_footer(int centerX, int centerY, int m, String opt1, String opt2, String opt3, int border, int MouseX, int MouseY, boolean set, boolean click)
@@ -1687,15 +1699,11 @@ public class mod_MyMiniMap extends BaseMod implements Runnable
     public String input; 
 
     private BlockColor block_colors[];
-    public int key_zoom_in, key_zoom_out, key_menu;
-    //	Current Menu Loaded
-    public menu_panel menu_select, next_menu;
     //	Was mouse down last render?
     public boolean lfclick = false;
     //	Holds error exceptions thrown
     public String info_message;
 
-    private boolean enabled;
     public boolean active;
     private int zoom;
     private int last_x, last_z;
