@@ -1,3 +1,4 @@
+import java.awt.Component;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.util.List;
@@ -27,7 +28,12 @@ public class minecraft_engine
 		lDraw = nw.a;
 	}
 	
-    public File get_app_dir(String app)
+	public Component get_component()
+	{
+		return game.m;
+	}
+
+	public File get_app_dir(String app)
     {
         return Minecraft.a(app);
     }
@@ -80,11 +86,15 @@ public class minecraft_engine
     public void draw_text(String text, int x, int y, int color)
     {
         lang.a(text, x, y, color);
+        GL11.glDepthMask(true);
+        GL11.glDisable(GL11.GL_BLEND);
+        GL11.glEnable(GL11.GL_DEPTH_TEST);
+        GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
     }
 
     public void draw_image(String texture_name, int x, int y, int width, int height, int offset_x, int offset_y, float scale, float rotation)
     {
-    	GL11.glBindTexture(3553, get_texture(texture_name));
+    	GL11.glBindTexture(GL11.GL_TEXTURE_2D, get_texture(texture_name));
         GL11.glPushMatrix();
         GL11.glTranslatef(x, y, 0.0F);
         GL11.glScalef(scale, scale, 1.0F);

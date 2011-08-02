@@ -8,41 +8,11 @@ public class waypoints
 {
 	private minecraft_engine engine;
 
-	public class waypoint
-    {
-        public String name;
-        public int x;
-        public int z;
-        public boolean enabled;
-        public float red = 0.0F;
-        public float green = 1.0F;
-        public float blue = 0.0F;
-
-        public waypoint(String name, int x, int z, boolean enabled)
-        {
-            this.name = name;
-            this.x = x;
-            this.z = z;
-            this.enabled = enabled;
-        }
-
-        public waypoint(String name, int x, int z, boolean enabled, float red, float green, float blue)
-        {
-            this.name = name;
-            this.x = x;
-            this.z = z;
-            this.enabled = enabled;
-            this.red = red;
-            this.green = green;
-            this.blue = blue;
-        }
-    }
-
 	public waypoints()
 	{
 		engine = new minecraft_engine();
 		current_world = "";
-		the_waypoints = new ArrayList<waypoint>();
+		the_waypoints = new ArrayList<Waypoint>();
 		load();
 	}
 	
@@ -81,9 +51,9 @@ public class waypoints
 	                    		value = waypoints_settings.get(key),
 	                    		values[] = value.split(":");
 	                        if (values.length == 3)
-	                        	the_waypoints.add(new waypoint(key, Integer.parseInt(values[1]), Integer.parseInt(values[2]), Boolean.parseBoolean(values[3])));
+	                        	the_waypoints.add(new Waypoint(key, Integer.parseInt(values[1]), Integer.parseInt(values[2]), Boolean.parseBoolean(values[3])));
 	                        else
-	                        	the_waypoints.add(new waypoint(key, Integer.parseInt(values[1]), Integer.parseInt(values[2]), Boolean.parseBoolean(values[3]), Float.parseFloat(values[4]), Float.parseFloat(values[5]), Float.parseFloat(values[6])));
+	                        	the_waypoints.add(new Waypoint(key, Integer.parseInt(values[1]), Integer.parseInt(values[2]), Boolean.parseBoolean(values[3]), Float.parseFloat(values[4]), Float.parseFloat(values[5]), Float.parseFloat(values[6])));
 	                    }
 	                    engine.to_chat("§EWaypoints loaded for " + current_world);
 	                }
@@ -109,7 +79,7 @@ public class waypoints
         	waypoints_settings.prepare_for_output();
 
         	if (!the_waypoints.isEmpty())
-	            for (waypoint pt : the_waypoints)
+	            for (Waypoint pt : the_waypoints)
 	            {
 	                if (!pt.name.startsWith("^"))
 	                	waypoints_settings.println(pt.name + ":" + pt.x + ":" + pt.z + ":" + Boolean.toString(pt.enabled) + ":" + pt.red + ":" + pt.green + ":" + pt.blue);
@@ -144,12 +114,12 @@ public class waypoints
 		return the_waypoints.size();
 	}
 	
-	public waypoint get(int index)
+	public Waypoint get(int index)
 	{
 		return the_waypoints.get(index);
 	}
 	
-	public void add(waypoint new_point)
+	public void add(Waypoint new_point)
 	{
 		try
 		{
@@ -160,16 +130,16 @@ public class waypoints
         }
 	}
 	
-	public waypoint create()
+	public Waypoint create()
 	{
-		return new waypoint("", 0, 0, true);
+		return new Waypoint("", 0, 0, true);
 	}
 	
 	public void draw(int x, int y, boolean nether, int zoom, float direction, int screen_width)
 	{
     	if (!isEmpty())
     	{
-            for (waypoint pt : the_waypoints)
+            for (Waypoint pt : the_waypoints)
             {
                 if (pt.enabled)
                 {
@@ -202,7 +172,7 @@ public class waypoints
                 }
             }
 
-            for (waypoint pt : the_waypoints)
+            for (Waypoint pt : the_waypoints)
             {
                 if (pt.enabled)
                 {
@@ -249,5 +219,5 @@ public class waypoints
 	}
 	
     public String current_world;
-    public ArrayList<waypoint> the_waypoints;
+    public ArrayList<Waypoint> the_waypoints;
 }
